@@ -2,6 +2,8 @@
 
 This project is an 8-bit style chess game implemented in HTML, CSS, and JavaScript. It features a responsive design and allows two players to play chess on the same device.
 
+![](8bit-chess.png)
+
 ## ✨ Features
 
 - 📱 Responsive 8-bit style chess board
@@ -34,4 +36,10 @@ This project is an 8-bit style chess game implemented in HTML, CSS, and JavaScri
 - Include a move history feature
 - Add sound effects for moves and captures
 - Implement a game over screen with restart option
-  
+
+## 🤝 Contributing
+- Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 🙏 Credits
+- Created with ❤️ by **Aditya Kch**
+- Chess piece Unicode characters from Unicode.org
