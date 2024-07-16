@@ -23,7 +23,7 @@ This project is an 8-bit style chess game implemented in HTML, CSS, and JavaScri
 ## 🚀 Installation
 1. Clone this repository
 2. Navigate to project directory
-3. Open index.html in your web browser
+3. Open `index.html` in your web browser
 
 ## 🛠️ Technologies Used
 - HTML
