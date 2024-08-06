@@ -34,7 +34,9 @@ function createBoard() {
 }
 
 function handleClick(event) {
-    const square = event.target;
+    const square = event.target.closest('.square');
+    if (!square) return;
+
     const row = parseInt(square.dataset.row);
     const col = parseInt(square.dataset.col);
 
@@ -73,6 +75,110 @@ function isValidMove(fromRow, fromCol, toRow, toCol) {
         return false;
     }
 
+    let isValid = false;
+
+    switch (piece) {
+        case 'p':
+            isValid = isValidPawnMove(fromRow, fromCol, toRow, toCol);
+            break;
+        case 'r':
+            isValid = (fromRow === toRow || fromCol === toCol) && isPathClear(fromRow, fromCol, toRow, toCol);
+            break;
+        case 'n':
+            isValid = (dx === 1 && dy === 2) || (dx === 2 && dy === 1);
+            break;
+        case 'b':
+            isValid = dx === dy && isPathClear(fromRow, fromCol, toRow, toCol);
+            break;
+        case 'q':
+            isValid = ((fromRow === toRow || fromCol === toCol) || (dx === dy)) && isPathClear(fromRow, fromCol, toRow, toCol);
+            break;
+        case 'k':
+            isValid = dx <= 1 && dy <= 1;
+            break;
+        default:
+            return false;
+    }
+
+    // If it's a valid move, check if it would put the king in check
+    if (isValid) {
+        // Temporarily make the move
+        const originalPiece = gameBoard[toRow][toCol];
+        gameBoard[toRow][toCol] = gameBoard[fromRow][fromCol];
+        gameBoard[fromRow][fromCol] = '';
+
+        // Check if the move would put the current player's king in check
+        const wouldBeInCheck = isKingInCheck(currentPlayer);
+
+        // Undo the temporary move
+        gameBoard[fromRow][fromCol] = gameBoard[toRow][toCol];
+        gameBoard[toRow][toCol] = originalPiece;
+
+        // If the move would put the king in check, it's not valid
+        if (wouldBeInCheck) {
+            return false;
+        }
+    }
+
+    return isValid;
+}
+
+function isValidPawnMove(fromRow, fromCol, toRow, toCol) {
+    const dx = Math.abs(toCol - fromCol);
+    const dy = toRow - fromRow;
+    const direction = currentPlayer === 'white' ? -1 : 1;
+
+    // Move forward
+    if (dx === 0 && !gameBoard[toRow][toCol]) {
+        if (dy === direction) return true;
+        if (dy === 2 * direction && 
+            ((currentPlayer === 'white' && fromRow === 6) || 
+             (currentPlayer === 'black' && fromRow === 1)) &&
+            !gameBoard[fromRow + direction][fromCol]) {
+            return true;
+        }
+    }
+    // Capture diagonally
+    else if (dx === 1 && dy === direction && gameBoard[toRow][toCol] && isEnemyPiece(fromRow, fromCol, toRow, toCol)) {
+        return true;
+    }
+    return false;
+}
+
+function isKingInCheck(player) {
+    // Find the king's position
+    let kingRow, kingCol;
+    const kingPiece = player === 'white' ? 'K' : 'k';
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            if (gameBoard[row][col] === kingPiece) {
+                kingRow = row;
+                kingCol = col;
+                break;
+            }
+        }
+        if (kingRow !== undefined) break;
+    }
+
+    // Check if any opponent's piece can attack the king
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = gameBoard[row][col];
+            if (piece && (player === 'white' ? piece === piece.toLowerCase() : piece === piece.toUpperCase())) {
+                if (canAttack(row, col, kingRow, kingCol)) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+function canAttack(fromRow, fromCol, toRow, toCol) {
+    const piece = gameBoard[fromRow][fromCol].toLowerCase();
+    const dx = Math.abs(toCol - fromCol);
+    const dy = Math.abs(toRow - fromRow);
+
     switch (piece) {
         case 'p':
             return isValidPawnMove(fromRow, fromCol, toRow, toCol);
@@ -91,25 +197,6 @@ function isValidMove(fromRow, fromCol, toRow, toCol) {
     }
 }
 
-function isValidPawnMove(fromRow, fromCol, toRow, toCol) {
-    const dx = Math.abs(toCol - fromCol);
-    const dy = toRow - fromRow;
-    const direction = currentPlayer === 'white' ? -1 : 1;
-
-    // Move forward
-    if (dx === 0 && !gameBoard[toRow][toCol]) {
-        if (dy === direction) return true;
-        if (dy === 2 * direction && ((currentPlayer === 'white' && fromRow === 6) || (currentPlayer === 'black' && fromRow === 1))) {
-            return !gameBoard[fromRow + direction][fromCol];
-        }
-    }
-    // Capture diagonally
-    else if (dx === 1 && dy === direction && isEnemyPiece(fromRow, fromCol, toRow, toCol)) {
-        return true;
-    }
-    return false;
-}
-
 function isPathClear(fromRow, fromCol, toRow, toCol) {
     const dx = Math.sign(toCol - fromCol);
     const dy = Math.sign(toRow - fromRow);
@@ -123,6 +210,10 @@ function isPathClear(fromRow, fromCol, toRow, toCol) {
     }
 
     return true;
+}
+
+function isPieceOfColor(piece, color) {
+    return color === 'white' ? piece === piece.toUpperCase() : piece === piece.toLowerCase();
 }
 
 function isEnemyPiece(fromRow, fromCol, toRow, toCol) {
@@ -141,34 +232,86 @@ function movePiece(from, to) {
     gameBoard[fromRow][fromCol] = '';
 
     // Update the DOM
-    to.innerHTML = from.innerHTML;
-    from.innerHTML = '';
+    to.textContent = from.textContent;
+    from.textContent = '';
 
     // Pawn promotion
     if (gameBoard[toRow][toCol].toLowerCase() === 'p' && (toRow === 0 || toRow === 7)) {
         const promotionPiece = currentPlayer === 'white' ? 'Q' : 'q';
         gameBoard[toRow][toCol] = promotionPiece;
-        const pieceElement = to.querySelector('span');
-        pieceElement.textContent = pieces[promotionPiece];
-        pieceElement.className = currentPlayer === 'white' ? 'white-piece' : 'black-piece';
+        to.textContent = pieces[promotionPiece];
     }
 
     playMoveSound();
 }
 
+function canPieceMove(fromRow, fromCol, toRow, toCol) {
+    const piece = gameBoard[fromRow][fromCol].toLowerCase();
+    const dx = Math.abs(toCol - fromCol);
+    const dy = Math.abs(toRow - fromRow);
+
+    switch (piece) {
+        case 'p':
+            return isValidPawnMove(fromRow, fromCol, toRow, toCol);
+        case 'r':
+            return (fromRow === toRow || fromCol === toCol) && isPathClear(fromRow, fromCol, toRow, toCol);
+        case 'n':
+            return (dx === 1 && dy === 2) || (dx === 2 && dy === 1);
+        case 'b':
+            return dx === dy && isPathClear(fromRow, fromCol, toRow, toCol);
+        case 'q':
+            return ((fromRow === toRow || fromCol === toCol) || (dx === dy)) && isPathClear(fromRow, fromCol, toRow, toCol);
+        case 'k':
+            return dx <= 1 && dy <= 1;
+        default:
+            return false;
+    }
+}
+
 function highlightValidMoves(row, col) {
+    clearHighlights();
+    const piece = gameBoard[row][col].toLowerCase();
+    const isKing = piece === 'k';
+    const threatenedSquares = isKing ? getThreatenedSquares(currentPlayer) : new Set();
+
     for (let i = 0; i < 8; i++) {
         for (let j = 0; j < 8; j++) {
             if (isValidMove(row, col, i, j)) {
-                document.querySelector(`[data-row="${i}"][data-col="${j}"]`).classList.add('valid-move');
+                const square = document.querySelector(`[data-row="${i}"][data-col="${j}"]`);
+                if (isKing && threatenedSquares.has(`${i},${j}`)) {
+                    square.classList.add('threatened-move');
+                } else {
+                    square.classList.add('valid-move');
+                }
             }
         }
     }
 }
 
+function getThreatenedSquares(player) {
+    const threatenedSquares = new Set();
+    const opponentColor = player === 'white' ? 'black' : 'white';
+
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const piece = gameBoard[row][col];
+            if (piece && (opponentColor === 'white' ? piece === piece.toUpperCase() : piece === piece.toLowerCase())) {
+                for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 8; j++) {
+                        if (canAttack(row, col, i, j)) {
+                            threatenedSquares.add(`${i},${j}`);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return threatenedSquares;
+}
+
 function clearHighlights() {
     document.querySelectorAll('.square').forEach(square => {
-        square.classList.remove('selected', 'valid-move');
+        square.classList.remove('selected', 'valid-move', 'threatened-move');
     });
 }
 
