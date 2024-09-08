@@ -37,9 +37,3 @@ This project is an 8-bit style chess game implemented in HTML, CSS, and JavaScri
 - Add sound effects for moves and captures
 - Implement a game over screen with restart option
 
-## 🤝 Contributing
-- Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 🙏 Credits
-- Created with ❤️ by **Aditya Kch**
-- Chess piece Unicode characters from Unicode.org
